@@ -44,20 +44,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Deploy Docker image to server
-      - name: Deploy Docker image to server
+      # Set up SSH key
+      - name: Set up SSH key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          # Set up SSH key
+          # Create SSH directory
           mkdir -p ~/.ssh
+          
+          # Add private key from GitHub secrets
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          
+          # Set permissions on the private key
           chmod 600 ~/.ssh/id_rsa
 
-          # Add the server to known_hosts to avoid SSH authenticity prompt
+          # Add server to known hosts to avoid authenticity prompt
           ssh-keyscan -H 64.227.159.217 >> ~/.ssh/known_hosts
 
-          # SSH into the server and deploy the Docker container
+          # Deploy to server
           ssh -i ~/.ssh/id_rsa -T ubuntu@64.227.159.217 << 'EOF'
             # Pull the latest Docker image from Docker Hub
             docker pull ajuua/sampletest:tagname
