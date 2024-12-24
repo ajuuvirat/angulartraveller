@@ -14,11 +14,11 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    # Step 2: Set up Node.js environment
+    # Step 2: Set up Node.js (update to at least v18)
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: 16
+        node-version: '18'  # Ensure you're using a Node.js version >= 18.13
 
     # Step 3: Install dependencies
     - name: Install Dependencies
