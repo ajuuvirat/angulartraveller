@@ -38,7 +38,7 @@ jobs:
     - name: Set up SSH key
       run: |
         mkdir -p ~/.ssh
-        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        echo "$SSH_PRIVATE_KEY" | base64 --decode > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         
     - name: Add server to known_hosts
@@ -47,7 +47,7 @@ jobs:
     
     - name: Deploy Docker container to server
       run: |
-        ssh -i ~/.ssh/id_rsa root@64.227.159.217 << 'EOF'
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@64.227.159.217 << 'EOF'
           # Pull the latest Docker image from Docker Hub
           docker pull ajuua/sampletest:latest
           
