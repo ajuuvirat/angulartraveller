@@ -1,58 +1,69 @@
-name: Deploy Docker Image to Server
+name: CI/CD Pipeline
 
+# Trigger this workflow on push to main and pull request events
 on:
   push:
     branches:
-      - main  # or specify the branch you want to trigger the pipeline on
+      - main
+  pull_request:
+    branches:
+      - main
 
+# Define the jobs in the pipeline
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use Ubuntu for build, change if needed
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # Step 1: Check out the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      # Step 2: Set up Python (if you're using Python, adjust based on your app)
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yum  # Install yum (needed for Amazon Linux or CentOS)
+          # Other commands to install dependencies like Docker, etc.
+          sudo yum install -y docker  # Install Docker if needed
 
-    - name: Build and push Docker image
-      run: |
-        docker build -t ajuua/sampletest:latest .
-        docker push ajuua/sampletest:latest
+      # Step 4: Build your Docker image (if applicable)
+      - name: Build Docker Image
+        run: |
+          docker build -t my-app .
+      
+      # Step 5: Run tests (modify this according to your testing needs)
+      - name: Run Tests
+        run: |
+          # Example for Python-based testing
+          python -m unittest discover
 
   deploy:
-    runs-on: ubuntu-latest
-    needs: build
+    runs-on: ubuntu-latest  # Use Ubuntu for deployment
+
+    needs: build  # This job depends on the successful completion of the build job
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # Step 1: Checkout the repository again
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up SSH key
-      run: |
-        mkdir -p ~/.ssh
-        echo "$SSH_PRIVATE_KEY" | base64 --decode > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        
-    - name: Add server to known_hosts
-      run: |
-        ssh-keyscan -H 64.227.159.217 >> ~/.ssh/known_hosts  # Replace with your server IP
-    
-    - name: Deploy Docker container to server
-      run: |
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@64.227.159.217 << 'EOF'
-          # Pull the latest Docker image from Docker Hub
-          docker pull ajuua/sampletest:latest
+      # Step 2: Set up SSH for remote deployment
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # Ensure you add this secret in GitHub
+
+      # Step 3: Deploy to the server (modify this according to your actual deployment)
+      - name: Deploy to server
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@your-server-ip "cd /path/to/deployment/folder && git pull && docker-compose up -d"
           
-          # Run the Docker container on port 8100
-          docker run -d -p 8100:8100 --restart unless-stopped ajuua/sampletest:latest
-        EOF
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}  # The SSH private key in GitHub secrets
+          # Alternatively, for a direct JAR deployment:
+          # ssh -o StrictHostKeyChecking=no ubuntu@your-server-ip "java -jar /path/to/app.jar"
