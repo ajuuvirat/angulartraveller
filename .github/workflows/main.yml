@@ -42,20 +42,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up SSH and add the private key
-      - name: Set up SSH key
+      # Set up SSH key and remove passphrase if necessary
+      - name: Set up SSH key without passphrase
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      # Start ssh-agent and add the private key
+          # Check if the private key has a passphrase and remove it
+          # Uncomment the following lines if your key has a passphrase and you want to remove it
+          # ssh-keygen -p -f ~/.ssh/id_rsa -N ""  # Remove passphrase from private key
+
+      # Add SSH private key to the agent
       - name: Start ssh-agent and add private key
         run: |
           eval $(ssh-agent -s)
           ssh-add ~/.ssh/id_rsa
 
-      # Add the server to known hosts to prevent SSH warning
+      # Add server to known hosts
       - name: Add server to known hosts
         run: |
           ssh-keyscan -H 64.227.159.217 >> ~/.ssh/known_hosts
