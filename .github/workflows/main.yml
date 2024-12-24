@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Deployment Pipeline
 
 on:
   push:
@@ -13,23 +13,38 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    # Set up the SSH key using webfactory/ssh-agent action
     - name: Set up SSH agent
       uses: webfactory/ssh-agent@v0.5.3
       with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # SSH private key from GitHub Secrets
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # SSH private key stored in GitHub Secrets
 
-    # (Optional) Install ssh-agent if needed
-    - name: Install ssh-agent (if necessary)
-      run: sudo apt-get install openssh-client
+    - name: Install SSH client (if necessary)
+      run: sudo apt-get install -y openssh-client
 
-    # Deploy application (replace with your specific commands)
-    - name: Deploy application
+    - name: Add SSH key to the agent
       run: |
-        # Ensure SSH agent is running and add the private key manually if necessary
         eval $(ssh-agent -s)
         echo "$SSH_PRIVATE_KEY" | ssh-add -
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
-        # Your deployment commands go here
-        # Example: SSH into the server and run deployment scripts
-        ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} user@your-server-ip 'bash -s' < deploy-script.sh
+    - name: Add server's SSH host to known_hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H your-server-ip >> ~/.ssh/known_hosts
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Deploy application to server
+      run: |
+        # SSH into the server and run your deployment commands
+        ssh -i ${{ secrets.SSH_PRIVATE_KEY }} -o StrictHostKeyChecking=no user@your-server-ip << 'EOF'
+          # Add your deployment steps here
+          cd /path/to/your/app
+          git pull origin main  # Or any other deployment steps
+          docker-compose down   # Example, stop running containers
+          docker-compose up -d  # Example, bring up containers
+          # Additional commands can be added here
+        EOF
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
