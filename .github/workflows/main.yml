@@ -43,21 +43,23 @@ jobs:
         uses: actions/checkout@v2
 
       # Set up SSH key and remove passphrase if necessary
-      - name: Set up SSH key without passphrase
+      - name: Set up SSH key with passphrase
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-          # Check if the private key has a passphrase and remove it
-          # Uncomment the following lines if your key has a passphrase and you want to remove it
-          # ssh-keygen -p -f ~/.ssh/id_rsa -N ""  # Remove passphrase from private key
+          # Install expect to automate passphrase entry
+          sudo apt-get update
+          sudo apt-get install -y expect
 
-      # Add SSH private key to the agent
-      - name: Start ssh-agent and add private key
-        run: |
-          eval $(ssh-agent -s)
-          ssh-add ~/.ssh/id_rsa
+          # Use expect to automate the passphrase entry when adding the SSH key to ssh-agent
+          expect << EOF
+            spawn ssh-add ~/.ssh/id_rsa
+            expect "Enter passphrase for ~/.ssh/id_rsa:"
+            send "${{ secrets.SSH_PASSPHRASE }}\r"
+            expect eof
+          EOF
 
       # Add server to known hosts
       - name: Add server to known hosts
