@@ -10,30 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout code from the repository
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      # Set up SSH to deploy the application
-      - name: Set up SSH key
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # GitHub secret containing private key
+    - name: Install ssh-agent (if necessary)
+      run: sudo apt-get install openssh-client
 
-      # Test SSH connection to the server
-      - name: Test SSH connection
-        run: |
-          ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@64.227.159.217
+    - name: Add SSH key to agent
+      run: |
+        echo "$SSH_PRIVATE_KEY" | ssh-add - > /dev/null
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # Deploy application to the server
-      - name: Deploy to server
-        run: |
-          ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@64.227.159.217 << 'EOF'
-            # Pull the latest Docker image from Docker Hub
-            docker pull ajuua/sampletest:latest
-            
-            # Run the Docker container on port 8100
-            docker run -d -p 8100:8100 --restart unless-stopped ajuua/sampletest:latest
-          EOF
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+    - name: Deploy application
+      run: |
+        # Your deployment commands here
