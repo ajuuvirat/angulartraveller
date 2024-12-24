@@ -18,9 +18,14 @@ jobs:
       - name: Set up SSH key
         uses: webfactory/ssh-agent@v0.5.3
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # Use the secret for the SSH private key
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # GitHub secret containing private key
 
-      # Deploy application to the server using SSH
+      # Test SSH connection to the server
+      - name: Test SSH connection
+        run: |
+          ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@64.227.159.217
+
+      # Deploy application to the server
       - name: Deploy to server
         run: |
           ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@64.227.159.217 << 'EOF'
