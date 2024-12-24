@@ -62,7 +62,7 @@ jobs:
           ssh-keyscan -H 64.227.159.217 >> ~/.ssh/known_hosts
 
           # Deploy to server
-          ssh -i ~/.ssh/id_rsa -T ubuntu@64.227.159.217 << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -T ubuntu@64.227.159.217 << 'EOF'
             # Pull the latest Docker image from Docker Hub
             docker pull ajuua/sampletest:tagname
             
