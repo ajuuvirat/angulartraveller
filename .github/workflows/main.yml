@@ -1,4 +1,4 @@
-name: Deployment Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -6,45 +6,60 @@ on:
       - main
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Set up Docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Build the Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t ajuua/sampletest:latest .
+
+      # Push the Docker image to Docker Hub
+      - name: Push Docker image to Docker Hub
+        run: |
+          docker push ajuua/sampletest:latest
+
   deploy:
     runs-on: ubuntu-latest
-
+    needs: build
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      # Set up SSH to deploy the application
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # GitHub secret containing private key
 
-    - name: Set up SSH agent
-      uses: webfactory/ssh-agent@v0.5.3
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # SSH private key stored in GitHub Secrets
+      # Test SSH connection to the server
+      - name: Test SSH connection
+        run: |
+          ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@64.227.159.217
 
-    - name: Install SSH client (if necessary)
-      run: sudo apt-get install -y openssh-client
+      # Deploy the Docker container to the server
+      - name: Deploy to server
+        run: |
+          ssh -T -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@64.227.159.217 << 'EOF'
+            # Pull the latest Docker image from Docker Hub
+            docker pull ajuua/sampletest:latest
+            
+            # Stop and remove any existing container if it exists
+            docker stop angular-app || true
+            docker rm angular-app || true
 
-    - name: Add SSH key to the agent
-      run: |
-        eval $(ssh-agent -s)
-        echo "$SSH_PRIVATE_KEY" | ssh-add -
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-
-    - name: Add server's SSH host to known_hosts
-      run: |
-        mkdir -p ~/.ssh
-        ssh-keyscan -H your-server-ip >> ~/.ssh/known_hosts
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-
-    - name: Deploy application to server
-      run: |
-        # SSH into the server and run your deployment commands
-        ssh -i ${{ secrets.SSH_PRIVATE_KEY }} -o StrictHostKeyChecking=no user@your-server-ip << 'EOF'
-          # Add your deployment steps here
-          cd /path/to/your/app
-          git pull origin main  # Or any other deployment steps
-          docker-compose down   # Example, stop running containers
-          docker-compose up -d  # Example, bring up containers
-          # Additional commands can be added here
-        EOF
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+            # Run the Docker container on port 8100
+            docker run -d -p 8100:8100 --restart unless-stopped --name angular-app ajuua/sampletest:latest
+          EOF
