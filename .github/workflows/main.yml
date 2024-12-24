@@ -13,18 +13,23 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    # Set up the SSH key using webfactory/ssh-agent action
     - name: Set up SSH agent
       uses: webfactory/ssh-agent@v0.5.3
       with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # SSH private key from GitHub Secrets
 
-    - name: Start ssh-agent
-      run: |
-        eval $(ssh-agent -s)
-        echo "$SSH_PRIVATE_KEY" | ssh-add - > /dev/null
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+    # (Optional) Install ssh-agent if needed
+    - name: Install ssh-agent (if necessary)
+      run: sudo apt-get install openssh-client
 
+    # Deploy application (replace with your specific commands)
     - name: Deploy application
       run: |
-        # Your deployment commands here
+        # Ensure SSH agent is running and add the private key manually if necessary
+        eval $(ssh-agent -s)
+        echo "$SSH_PRIVATE_KEY" | ssh-add -
+
+        # Your deployment commands go here
+        # Example: SSH into the server and run deployment scripts
+        ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} user@your-server-ip 'bash -s' < deploy-script.sh
