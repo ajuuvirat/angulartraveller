@@ -55,10 +55,10 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
 
           # Add the server to known_hosts to avoid SSH authenticity prompt
-          ssh-keyscan -H your-server-ip >> ~/.ssh/known_hosts
+          ssh-keyscan -H 64.227.159.217 >> ~/.ssh/known_hosts  # Replace with your server IP
 
           # SSH into the server and deploy the Docker container
-          ssh -i ~/.ssh/id_rsa ubuntu@your-server-ip << 'EOF'
+          ssh -i ~/.ssh/id_rsa ubuntu@64.227.159.217 << 'EOF'  # Replace with your server IP
             # Pull the latest Docker image from Docker Hub
             docker pull ajuua/sampletest:tagname
             
