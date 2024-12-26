@@ -41,7 +41,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22  # Default SSH port, update if necessary
-        timeout: 60s  # Increase timeout if needed
+        timeout: 120s  # Increase timeout if needed
         script: |
           # Pull the latest image from Docker Hub
           docker pull ajuua/sampletest:latest
