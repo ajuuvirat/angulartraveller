@@ -10,24 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # Step 1: Checkout the code
     - name: Checkout code
       uses: actions/checkout@v2
 
+    # Step 2: Set up the SSH agent with the private key
     - name: Set up SSH key
       uses: webfactory/ssh-agent@v0.5.3
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+    # Step 3: Run SSH commands to deploy the container
     - name: Run deployment script
       uses: appleboy/ssh-action@v0.1.3
       with:
-        host: ${{ secrets.HOST }}  # Your SSH host
-        username: ${{ secrets.USERNAME }}  # Your SSH username
-        key: ${{ secrets.SSH_PRIVATE_KEY }}  # The SSH private key secret
+        host: ${{ secrets.SSH_HOST }}         # Your SSH host
+        username: ${{ secrets.SSH_USERNAME }}  # Your SSH username
+        key: ${{ secrets.SSH_PRIVATE_KEY }}    # The SSH private key secret
         port: 22
         timeout: 60s
+        debug: true                           # Enable debugging for detailed logs
         script: |
+          # Pull the Docker image
           docker pull ajuua/sampletest:latest
+
+          # Stop and remove the old container (if running)
           docker ps -q -f "name=sampletest" | grep -q . && docker stop sampletest && docker rm sampletest
+
+          # Run the new container in detached mode
           docker run -d --name sampletest -p 8080:80 ajuua/sampletest:latest
-        debug: true
