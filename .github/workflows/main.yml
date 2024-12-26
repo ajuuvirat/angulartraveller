@@ -18,7 +18,7 @@ jobs:
       - name: Install SSH client and set up SSH key
         run: |
           # Install SSH client if not already installed
-          sudo apt-get update -y && sudo apt-get install -y openssh-client
+          sudo apt-get update -y && sudo apt-get install -y openssh-client expect
           
           # Setup SSH directory and add private key
           mkdir -p ~/.ssh
@@ -27,21 +27,13 @@ jobs:
           
           # Start SSH agent and add the private key
           eval $(ssh-agent -s)
-          spawn ssh-add ~/.ssh/id_rsa
+          ssh-add ~/.ssh/id_rsa
           ls -l ~/.ssh
 
       # Step 3: Install expect to handle passphrase (if needed)
       - name: Install expect and add private key
         run: |
-          sudo apt-get install -y expect
-
-          # Verify if the private key exists before running ssh-add
-          if [ ! -f ~/.ssh/id_rsa ]; then
-            echo "Private key does not exist!" 
-            exit 1
-          fi
-
-          # Add the private key using expect (if passphrase required)
+          # Use expect to add the private key (if passphrase required)
           expect << EOF
           spawn ssh-add ~/.ssh/id_rsa
           expect "Enter passphrase for ~/.ssh/id_rsa:"
