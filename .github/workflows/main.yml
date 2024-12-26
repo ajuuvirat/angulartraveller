@@ -42,14 +42,4 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
-          # Pull the latest image from Docker Hub
-          docker pull ajuua/sampletest:latest
-          
-          # Stop the existing container if running
-          docker ps -q -f "name=angular-app" | xargs -r docker stop
-
-          # Remove the old container if it exists
-          docker ps -a -q -f "name=angular-app" | xargs -r docker rm
-
-          # Run the new container on port 8100
-          docker run -d -p 8100:80 --name angular-app ajuua/sampletest:latest
+          # Pull the latest image from Docker 
