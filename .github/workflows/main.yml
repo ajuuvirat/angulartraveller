@@ -22,4 +22,4 @@ jobs:
     - name: Test SSH connection
       run: |
         echo "Attempting to SSH into server"
-        ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@your-server-ip
+        ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@64.227.159.217
