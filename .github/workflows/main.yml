@@ -43,7 +43,7 @@ jobs:
     - name: Test SSH connection
       run: |
         echo "Attempting to SSH into server"
-        ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_HOST }} "hostname && whoami"
+        ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@64.227.159.217
 
     - name: Deploy to server
       uses: appleboy/ssh-action@v0.1.3
