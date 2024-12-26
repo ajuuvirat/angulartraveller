@@ -34,11 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-    - name: Debug SSH connection
-      run: |
-        echo "Attempting to SSH into server"
-        ssh -vvv -i ${{ secrets.SSH_PRIVATE_KEY }} -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_HOST }} "hostname && whoami"
-
+    
     - name: SSH into the server and deploy
       uses: appleboy/ssh-action@v0.1.3
       with:
