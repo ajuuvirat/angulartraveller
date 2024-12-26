@@ -1,4 +1,4 @@
-name: Deploy to Server
+name: Deploy to Remote Server
 
 on:
   push:
@@ -10,32 +10,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout code
+    # Step 1: Checkout the code from the repository
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Step 2: Set up SSH key using webfactory/ssh-agent
+    # Step 2: Set up SSH key
     - name: Set up SSH key
       uses: webfactory/ssh-agent@v0.5.3
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    # Step 3: Run deployment script
-    - name: Run deployment script
+    # Step 3: Run SSH commands on the remote server
+    - name: Run deployment script via SSH
       uses: appleboy/ssh-action@v0.1.3
       with:
-        host: ${{ secrets.SSH_HOST }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
-        timeout: 60s
-        debug: true
+        host: ${{ secrets.SSH_HOST }}  # Your SSH host (IP or domain)
+        username: ${{ secrets.SSH_USERNAME }}  # Your SSH username
+        key: ${{ secrets.SSH_PRIVATE_KEY }}  # The SSH private key secret
+        port: 22  # Update if you're using a custom SSH port
+        timeout: 60s  # Timeout for the SSH connection
+        debug: true  # Enable debugging for better visibility of SSH issues
         script: |
-          # Pull the Docker image
+          # Pull the latest Docker image
           docker pull ajuua/sampletest:latest
-
+          
           # Stop and remove the old container (if running)
           docker ps -q -f "name=sampletest" | grep -q . && docker stop sampletest && docker rm sampletest
-
+          
           # Run the new container in detached mode
           docker run -d --name sampletest -p 8080:80 ajuua/sampletest:latest
+
+    # Optional: Clean up after deployment (e.g., remove unused Docker images)
+    - name: Clean up Docker images (optional)
+      run: |
+        docker image prune -f  # Remove unused images
+        docker container prune -f  # Remove stopped containers
