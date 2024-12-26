@@ -1,56 +1,27 @@
-name: Build and Deploy Angular App
+name: Deploy
 
 on:
   push:
     branches:
-      - main  # Adjust this to your default branch
+      - main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Build Docker image
-      run: |
-        docker build -t ajuua/sampletest:latest .
-
-    - name: Push Docker image to Docker Hub
-      run: |
-        docker push ajuua/sampletest:latest
-
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+
     steps:
+    - name: Checkout the code
+      uses: actions/checkout@v3
+
     - name: Set up SSH
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H 64.227.159.217 >> ~/.ssh/known_hosts
 
-    - name: Verify SSH connection
+    - name: Deploy to server
       run: |
-        echo "Testing SSH connection to the server..."
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_HOST }} "hostname && whoami"
-
-    - name: Deploy Docker image
-      run: |
-        echo "Pulling and running Docker container on the server"
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_HOST }} << 'EOF'
-          docker pull ajuua/sampletest:latest
-          docker ps -q -f "name=sampletest" | grep -q . && docker stop sampletest && docker rm sampletest
-          docker run -d --name sampletest -p 8080:80 ajuua/sampletest:latest
-        EOF
+        ssh -i ~/.ssh/id_rsa root@64.227.159.217 
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
