@@ -17,28 +17,36 @@ jobs:
       run: |
         # Ensure the .ssh directory exists
         mkdir -p ~/.ssh
-
+        
         # Save the private key to the id_rsa file
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-
+        
         # Set proper permissions for the private key
         chmod 600 ~/.ssh/id_rsa
-
+        
         # Start the SSH agent
         eval $(ssh-agent -s)
-
+        
         # Add the private key to the agent (passphrase handled here)
         if [ -n "$SSH_PASSPHRASE" ]; then
           echo "$SSH_PASSPHRASE" | ssh-add ~/.ssh/id_rsa
         else
           ssh-add ~/.ssh/id_rsa
         fi
-
-        # Disable strict host key checking (to avoid errors if the server's key is unknown)
+        
+        # Ensure .ssh/known_hosts exists and add server key
         mkdir -p ~/.ssh
         touch ~/.ssh/known_hosts
+        
+        # Ensure SERVER_IP is defined
+        if [ -z "$SERVER_IP" ]; then
+          echo "SERVER_IP is not defined!"
+          exit 1
+        fi
+        
+        # Fetch server SSH key and add it to known hosts
         ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
-
+        
         # Test SSH connection to the remote server
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$SERVER_IP 'echo "SSH connection successful"'
 
