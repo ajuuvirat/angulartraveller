@@ -14,49 +14,52 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Log in to Docker Hub
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # Step 3: Build Docker Image
-      - name: Build Docker Image
-        run: |
-          echo "Building Docker image..."
-          docker build -t ajuua/sampletest:latest .
-          docker images
-
-      # Step 4: Push Docker Image to Docker Hub
-      - name: Push Docker Image
-        run: |
-          echo "Pushing Docker image..."
-          docker push ajuua/sampletest:latest
-
-      # Step 5: Set up SSH Key
+      # Step 2: Set up SSH Key
       - name: Set up SSH Key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      # Step 6: Start SSH Agent and Add Private Key
+      # Step 3: Start SSH Agent and Add Private Key
       - name: Start SSH Agent and Add Private Key
         run: |
+          # Start the ssh-agent
           eval $(ssh-agent -s)
-          ssh-add ~/.ssh/id_rsa
 
-      # Step 7: Deploy and Run Docker Container on Server
-      - name: Deploy Docker Container
+          # Install expect to handle passphrase
+          sudo apt-get update && sudo apt-get install -y expect
+
+          # Use expect to add the private key
+          expect << EOF
+          spawn ssh-add ~/.ssh/id_rsa
+          expect "Enter passphrase for ~/.ssh/id_rsa:"
+          send "${{ secrets.SSH_PASSPHRASE }}\r"
+          expect eof
+          EOF
+
+      # Step 4: Verify SSH Connection (Optional)
+      - name: Verify SSH Connection
+        run: ssh -o StrictHostKeyChecking=no -T git@github.com || echo "SSH connection failed"
+
+      # Step 5: Build Docker Image
+      - name: Build Docker Image
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-          # Pull the latest Docker image
-          docker pull ajuua/sampletest:latest
-          
-          # Stop and remove any existing container running on port 8100
-          docker ps -q --filter "name=sampletest-container" | grep -q . && docker stop sampletest-container && docker rm sampletest-container || true
-          
-          # Run the new container on port 8100
-          docker run -d -p 8100:8100 --name sampletest-container ajuua/sampletest:latest
+          echo "Building Docker image..."
+          docker build -t yourdockerhubusername/my-app:latest .
+
+      # Step 6: Push Docker Image to Docker Hub
+      - name: Push Docker Image to Docker Hub
+        run: |
+          echo "Pushing Docker image to Docker Hub..."
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker push yourdockerhubusername/my-app:latest
+
+      # Step 7: Deploy Docker Image to Server and Run on Port 8100
+      - name: Deploy Docker Image to Server
+        run: |
+          echo "Deploying Docker image to server..."
+          ssh -o StrictHostKeyChecking=no ubuntu@your-server-ip << 'EOF'
+            docker pull yourdockerhubusername/my-app:latest
+            docker run -d -p 8100:8100 yourdockerhubusername/my-app:latest
           EOF
