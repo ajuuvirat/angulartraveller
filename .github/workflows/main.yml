@@ -16,12 +16,16 @@ jobs:
     - name: Set up SSH
       run: |
         mkdir -p ~/.ssh
-        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa  # Clean the private key of any extra carriage returns
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H 64.227.159.217 >> ~/.ssh/known_hosts
 
+    - name: Test SSH connection
+      run: |
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@64.227.159.217 "hostname && whoami"
+
     - name: Deploy to server
       run: |
-        ssh -i ~/.ssh/id_rsa root@64.227.159.217 
+        ssh -i ~/.ssh/id_rsa ubuntu@64.227.159.217 "docker pull ajuua/sampletest:latest && docker run -d --name sampletest -p 8080:80 ajuua/sampletest:latest"
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
