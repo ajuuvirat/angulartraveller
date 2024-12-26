@@ -14,36 +14,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up SSH Key
-      - name: Set up SSH Key
+      # Step 2: Install SSH client and expect
+      - name: Install SSH client and expect
         run: |
+          # Install SSH client and expect
+          sudo apt-get update -y && sudo apt-get install -y openssh-client expect
+
+      # Step 3: Set up SSH key and passphrase
+      - name: Set up SSH key and passphrase
+        run: |
+          # Setup SSH directory
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
-      # Step 3: Start SSH Agent and Add Private Key
-      - name: Start SSH Agent and Add Private Key
-        run: |
-          # Start the ssh-agent
-          eval $(ssh-agent -s)
-
-          # Install expect to handle passphrase
-          sudo apt-get update && sudo apt-get install -y expect
-
-          # Use expect to add the private key
-          expect << EOF
-          spawn ssh-add ~/.ssh/id_rsa
-          expect {
-            "Enter passphrase for ~/.ssh/id_rsa:" { send "\r"; exp_continue }
-            eof
-          }
-          EOF
-
-      # Step 4: Verify SSH Connection (Optional)
-      - name: Verify SSH Connection
-        run: ssh -o StrictHostKeyChecking=no -T git@github.com || echo "SSH connection failed"
-
-      # Step 5: Build and Deploy (Add your steps here)
-      - name: Build and Deploy
-        run: |
-          echo "Add your build and deployment steps here."
+          
+ 
