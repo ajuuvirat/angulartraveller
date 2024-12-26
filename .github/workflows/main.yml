@@ -11,7 +11,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
@@ -34,27 +34,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-    - name: Set up SSH private key
+    - name: Set up SSH
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-    - name: SSH into the server and deploy
+    - name: Verify SSH connection
       run: |
-        echo "Attempting to SSH into the server"
+        echo "Testing SSH connection to the server..."
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_HOST }} "hostname && whoami"
-      
+
     - name: Deploy Docker image
-      uses: appleboy/ssh-action@v0.1.3
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
-        timeout: 60s
-        script: |
+      run: |
+        echo "Pulling and running Docker container on the server"
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_HOST }} << 'EOF'
           docker pull ajuua/sampletest:latest
           docker ps -q -f "name=sampletest" | grep -q . && docker stop sampletest && docker rm sampletest
           docker run -d --name sampletest -p 8080:80 ajuua/sampletest:latest
+        EOF
