@@ -1,4 +1,4 @@
-name: Deploy with SSH Key
+name: SSH Connection Test
 
 on:
   push:
@@ -6,32 +6,43 @@ on:
       - main
 
 jobs:
-  deploy:
+  test-ssh-connection:
     runs-on: ubuntu-latest
-
+    
     steps:
-      # Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    
+    - name: Set up SSH
+      run: |
+        # Ensure the .ssh directory exists
+        mkdir -p ~/.ssh
 
-      # Set up SSH and add the private key
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+        # Save the private key to the id_rsa file
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
 
-          # Start SSH agent and add the private key with passphrase
-          eval $(ssh-agent -s)
+        # Set proper permissions for the private key
+        chmod 600 ~/.ssh/id_rsa
+
+        # Start the SSH agent
+        eval $(ssh-agent -s)
+
+        # If a passphrase is provided, use it to add the key
+        if [ -n "$SSH_PASSPHRASE" ]; then
           echo "$SSH_PASSPHRASE" | ssh-add ~/.ssh/id_rsa
+        else
+          ssh-add ~/.ssh/id_rsa
+        fi
 
-          # Disable strict host key checking for the test
-          mkdir -p ~/.ssh
-          touch ~/.ssh/known_hosts
-          ssh-keyscan -H your-server-ip >> ~/.ssh/known_hosts
+        # Disable strict host key checking (to avoid errors if the server's key is unknown)
+        mkdir -p ~/.ssh
+        touch ~/.ssh/known_hosts
+        ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
 
-      # Test SSH connection
-      - name: Test SSH connection
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@your-server-ip 'echo "SSH connection successful"'
-        shell: /usr/bin/bash -e {0}
+        # Test SSH connection to the remote server
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$SERVER_IP 'echo "SSH connection successful"'
+
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}
+      SERVER_IP: ${{ secrets.SERVER_IP }}
