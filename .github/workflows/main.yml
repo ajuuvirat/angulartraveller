@@ -57,3 +57,4 @@ jobs:
           docker pull ajuua/sampletest:latest
           docker ps -q -f "name=sampletest" | grep -q . && docker stop sampletest && docker rm sampletest
           docker run -d --name sampletest -p 8080:80 ajuua/sampletest:latest
+          
