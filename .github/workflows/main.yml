@@ -14,23 +14,34 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up SSH Key
-      - name: Set up SSH Key
+      # Step 2: Install SSH client and set up SSH key
+      - name: Install SSH client and set up SSH key
         run: |
+          # Install SSH client if not already installed
+          sudo apt-get update -y && sudo apt-get install -y openssh-client
+          
+          # Setup SSH directory and add private key
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-
-      # Step 3: Start SSH Agent and Add Private Key
-      - name: Start SSH Agent and Add Private Key
-        run: |
-          # Start the ssh-agent
+          
+          # Start SSH agent and add the private key
           eval $(ssh-agent -s)
+          spawn ssh-add ~/.ssh/id_rsa
+          ls -l ~/.ssh
 
-          # Install expect to handle passphrase
-          sudo apt-get update && sudo apt-get install -y expect
+      # Step 3: Install expect to handle passphrase (if needed)
+      - name: Install expect and add private key
+        run: |
+          sudo apt-get install -y expect
 
-          # Use expect to add the private key
+          # Verify if the private key exists before running ssh-add
+          if [ ! -f ~/.ssh/id_rsa ]; then
+            echo "Private key does not exist!" 
+            exit 1
+          fi
+
+          # Add the private key using expect (if passphrase required)
           expect << EOF
           spawn ssh-add ~/.ssh/id_rsa
           expect "Enter passphrase for ~/.ssh/id_rsa:"
@@ -38,7 +49,7 @@ jobs:
           expect eof
           EOF
 
-      # Step 4: Verify SSH Connection (Optional)
+      # Step 4: Verify SSH connection to GitHub (Optional)
       - name: Verify SSH Connection
         run: ssh -o StrictHostKeyChecking=no -T git@github.com || echo "SSH connection failed"
 
@@ -59,7 +70,7 @@ jobs:
       - name: Deploy Docker Image to Server
         run: |
           echo "Deploying Docker image to server..."
-          ssh -o StrictHostKeyChecking=no ubuntu@your-server-ip << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@your-server-ip << 'EOF'
             docker pull yourdockerhubusername/my-app:latest
             docker run -d -p 8100:8100 yourdockerhubusername/my-app:latest
           EOF
