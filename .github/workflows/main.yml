@@ -29,9 +29,9 @@ jobs:
     - name: Run deployment script via SSH
       uses: appleboy/ssh-action@v0.1.3
       with:
-        host: ${{ secrets.SSH_HOST }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        host: ${{ secrets.SSH_HOST }}   # The actual host (IP or FQDN)
+        username: ${{ secrets.SSH_USERNAME }}  # Your SSH username
+        key: ${{ secrets.SSH_PRIVATE_KEY }}   # The SSH private key secret
         port: 22
         timeout: 60s
         debug: true
