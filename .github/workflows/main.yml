@@ -8,61 +8,25 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    # Step 1: Checkout the code from the repository
-    - name: Checkout code
-      uses: actions/checkout@v2
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    # Step 2: Set up SSH key and passphrase
-    - name: Set up SSH key and passphrase
-      run: |
-        # Copy the private key into the correct directory
-        cp ~/.ssh/travellprivatekey ~/.ssh/travellprivatekey
-        chmod 600 ~/.ssh/travellprivatekey
+      # Step 2: Set up SSH key and passphrase
+      - name: Set up SSH key and passphrase
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
 
-        # Start the SSH agent and add the private key
-        eval $(ssh-agent -s)
-        echo "Adding SSH key..."
-        ssh-add ~/.ssh/travellprivatekey
+          # Start the SSH agent and add the private key
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/id_rsa
 
-        # If passphrase is provided, handle it
-        if [ -n "${{ secrets.SSH_PASSPHRASE }}" ]; then
-          echo "Providing SSH passphrase..."
-          expect << EOF
-          spawn ssh-add ~/.ssh/travellprivatekey
-          expect "Enter passphrase for ~/.ssh/:"travellprivatekey
-          send "${{ secrets.SSH_PASSPHRASE }}\r"
-          expect eof
-          EOF
-        fi
+          # Test SSH connection
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.SERVER_HOST }} 'echo "SSH connection successful"'
 
-    # Step 3: Set up dependencies (install necessary tools, like Docker, Java, etc.)
-    - name: Set up dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y docker.io
-
-    # Step 4: Build the Docker image
-    - name: Build Docker image
-      run: |
-        docker build -t your-app-name .
-
-    # Step 5: Push the Docker image to Docker Hub (if required)
-    - name: Push Docker image to Docker Hub
-      run: |
-        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker tag your-app-name ${{ secrets.DOCKER_USERNAME }}/your-app-name:latest
-        docker push ${{ secrets.DOCKER_USERNAME }}/your-app-name:latest
-
-    # Step 6: Deploy the application to the remote server
-    - name: Deploy to server
-      run: |
-        # SSH into the remote server and pull the latest Docker image
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << EOF
-          # Pull the latest image and restart the container (assuming Docker is used)
-          docker pull ${{ secrets.DOCKER_USERNAME }}/your-app-name:latest
-          docker stop your-container-name || true
-          docker rm your-container-name || true
-          docker run -d -p 8080:8080 --name your-container-name ${{ secrets.DOCKER_USERNAME }}/your-app-name:latest
-        EOF
+      # Step 3: Build and deploy your application (add other steps here)
+      # ...
