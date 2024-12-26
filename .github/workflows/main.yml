@@ -40,6 +40,14 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
+        port: 22  # Default SSH port, update if necessary
+        timeout: 60s  # Increase timeout if needed
         script: |
-          # Pull the latest image from Docker 
+          # Pull the latest image from Docker Hub
+          docker pull ajuua/sampletest:latest
+
+          # Stop and remove the old container if it exists
+          docker ps -q -f "name=sampletest" | grep -q . && docker stop sampletest && docker rm sampletest
+
+          # Run the new container
+          docker run -d --name sampletest -p 8080:80 ajuua/sampletest:latest
