@@ -27,7 +27,7 @@ jobs:
         # Start the SSH agent
         eval $(ssh-agent -s)
 
-        # If a passphrase is provided, use it to add the key
+        # Add the private key to the agent (passphrase handled here)
         if [ -n "$SSH_PASSPHRASE" ]; then
           echo "$SSH_PASSPHRASE" | ssh-add ~/.ssh/id_rsa
         else
@@ -43,6 +43,6 @@ jobs:
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$SERVER_IP 'echo "SSH connection successful"'
 
     env:
-      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-      SSH_PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}
-      SERVER_IP: ${{ secrets.SERVER_IP }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}   # Private SSH key from GitHub Secrets
+      SSH_PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}     # Passphrase for the SSH key (if set)
+      SERVER_IP: ${{ secrets.SERVER_IP }}               # Server IP address
