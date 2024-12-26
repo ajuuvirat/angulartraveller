@@ -26,4 +26,48 @@ jobs:
           # Setup SSH directory
           mkdir -p ~/.ssh
           
- 
+          # Add the private key from GitHub secrets
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          # Start SSH agent and add the private key
+          eval $(ssh-agent -s)
+          echo "Adding SSH key..."
+          ssh-add ~/.ssh/id_rsa
+
+          # If the passphrase is required, add the passphrase using expect
+          if [ -n "${{ secrets.SSH_PASSPHRASE }}" ]; then
+            echo "Providing SSH passphrase..."
+            expect << EOF
+            spawn ssh-add ~/.ssh/id_rsa
+            expect "Enter passphrase for ~/.ssh/id_rsa:"
+            send "${{ secrets.SSH_PASSPHRASE }}\r"
+            expect eof
+            EOF
+          fi
+
+      # Step 4: Verify SSH connection to GitHub (Optional)
+      - name: Verify SSH Connection
+        run: ssh -o StrictHostKeyChecking=no -T git@github.com || echo "SSH connection failed"
+
+      # Step 5: Build Docker Image
+      - name: Build Docker Image
+        run: |
+          echo "Building Docker image..."
+          docker build -t yourdockerhubusername/my-app:latest .
+
+      # Step 6: Push Docker Image to Docker Hub
+      - name: Push Docker Image to Docker Hub
+        run: |
+          echo "Pushing Docker image to Docker Hub..."
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker push yourdockerhubusername/my-app:latest
+
+      # Step 7: Deploy Docker Image to Server and Run on Port 8100
+      - name: Deploy Docker Image to Server
+        run: |
+          echo "Deploying Docker image to server..."
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@your-server-ip << 'EOF'
+            docker pull yourdockerhubusername/my-app:latest
+            docker run -d -p 8100:8100 yourdockerhubusername/my-app:latest
+          EOF
