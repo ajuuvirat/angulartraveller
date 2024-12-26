@@ -42,18 +42,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up SSH key and remove passphrase if necessary
+      # Set up SSH key with passphrase
       - name: Set up SSH key with passphrase
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-          # Install expect to automate passphrase entry
-          sudo apt-get update
-          sudo apt-get install -y expect
-
-          # Use expect to automate the passphrase entry when adding the SSH key to ssh-agent
+          # Start ssh-agent and use expect to provide passphrase
+          eval $(ssh-agent -s)
+          sudo apt-get update && sudo apt-get install -y expect
           expect << EOF
             spawn ssh-add ~/.ssh/id_rsa
             expect "Enter passphrase for ~/.ssh/id_rsa:"
