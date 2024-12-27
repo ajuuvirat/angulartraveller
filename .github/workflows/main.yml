@@ -1,67 +1,66 @@
-name: Build and Deploy Angular Docker Image
+name: Angular Docker CI/CD Pipeline
 
 on:
   push:
     branches:
-      - main  # Trigger the pipeline on push to the main branch
+      - main  # Trigger the workflow on push to main branch
   pull_request:
     branches:
-      - main  # Trigger the pipeline on pull request to the main branch
+      - main  # Trigger the workflow on pull request to main branch
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    # Checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      # Set up Node.js with the required version
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18.x'  # Ensure Node.js 18.x is used for Angular CLI
-      
-      # Install dependencies
-      - name: Install dependencies
-        run: npm install
+    # Set up Node.js
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'  # Set Node.js version (change if needed)
 
-      # Build the Angular application
-      - name: Build Angular application
-        run: npm run build --prod
+    # Install dependencies
+    - name: Install dependencies
+      run: npm install
 
-      # Build Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t your-docker-image-name .
-        
-      # Log in to Docker Hub (optional, if you plan to push the image to Docker Hub)
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}  # Store your Docker Hub username in GitHub Secrets
-          password: ${{ secrets.DOCKER_PASSWORD }}  # Store your Docker Hub password in GitHub Secrets
+    # Build the Angular application
+    - name: Build Angular application
+      run: npm run build --prod  # The build command may vary if you're using different configurations
 
-      # Push the Docker image to Docker Hub (optional, if you want to push to Docker Hub)
-      - name: Push Docker image to Docker Hub
-        run: |
-          docker push your-docker-image-name
+    # Build Docker image
+    - name: Build Docker image
+      run: docker build -t ajuua/sampletest .
 
-      # Deploy the application (this step depends on your server setup)
-      # Example: SSH to server and deploy Docker container
-      - name: Deploy Docker container to server
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}  # Store your SSH private key in GitHub Secrets
-          SSH_HOST: ${{ secrets.SSH_HOST }}  # Store the SSH host in GitHub Secrets
-          SSH_USER: ${{ secrets.SSH_USER }}  # Store the SSH user in GitHub Secrets
-        run: |
-          # Ensure the SSH private key is added to the agent
-          echo "$SSH_PRIVATE_KEY" | ssh-add -
-          
-          # SSH into the server and deploy the Docker container
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
-            docker pull your-docker-image-name  # Pull the latest image from Docker Hub
-            docker stop your-container-name || true  # Stop the running container (if any)
-            docker rm your-container-name || true  # Remove the stopped container (if any)
-            docker run -d --name your-container-name -p 80:80 your-docker-image-name  # Run the new container
-          EOF
+    # Log in to Docker Hub
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}  # Store Docker Hub username in GitHub secrets
+        password: ${{ secrets.DOCKER_PASSWORD }}  # Store Docker Hub password in GitHub secrets
+
+    # Push Docker image to Docker Hub
+    - name: Push Docker image to Docker Hub
+      run: docker push ajuua/sampletest
+
+    # Debug Network Connectivity (if needed)
+    - name: Debug Network Connectivity
+      run: |
+        ping -c 4 $SSH_HOST
+        nc -zv $SSH_HOST $SSH_PORT
+
+    # Ensure SSH key exists for the deployment (optional)
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -p $SSH_PORT $SSH_HOST >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed. Please ensure the server is reachable and the SSH service is running."; exit 1; }
+
+     #Deployment step (if applicable)
+    # - name: Deploy to server
+    #   run: |
+    #     ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "docker pull ajuua/sampletest && docker run -d -p 8080:80 ajuua/sampletest"
