@@ -1,43 +1,59 @@
-stages:
-  - build
-  - deploy
+name: Deploy Application
 
-variables:
-  SSH_USERNAME: "ubuntu" # Replace with your SSH username
-  SSH_HOST: "143.110.251.96" # Replace with your SSH host
-  SSH_PORT: "22" # Default SSH port
-  DEPLOY_DIR: "/var/www/html/project" # Deployment directory
-  SSH_KEY: $SSH_PRIVATE_KEY # Set in GitLab CI/CD variables
+on:
+  push:
+    branches:
+      - main # Run the workflow on pushes to the 'main' branch
 
-before_script:
-  # Ensure SSH agent is running and private key is added
-  - eval $(ssh-agent -s)
-  - echo "$SSH_KEY" | tr -d '\r' | ssh-add -
-  - mkdir -p ~/.ssh
-  - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+jobs:
+  deploy:
+    name: Deploy to Remote Server
+    runs-on: ubuntu-latest
 
-build:
-  stage: build
-  script:
-    - echo "Building the application..."
-    # Add build commands for your application (e.g., npm install, mvn package)
-    - echo "Build process completed."
+    env:
+      SSH_HOST: "143.110.251.96" # Replace with your server's IP or hostname
+      SSH_PORT: "22" # SSH port
+      SSH_USERNAME: "ubuntu" # Replace with your SSH username
+      DEPLOY_DIR: "/var/www/html/project" # Deployment directory
 
-deploy:
-  stage: deploy
-  script:
-    - echo "Deploying the application..."
-    - echo "SSH_USERNAME: ${SSH_USERNAME}"
-    - echo "SSH_HOST: ${SSH_HOST}"
-    - echo "Attempting SSH connection to ${SSH_USERNAME}@${SSH_HOST} on port ${SSH_PORT}"
-    - ssh -v -i ~/.ssh/id_rsa "${SSH_USERNAME}@${SSH_HOST}" -p ${SSH_PORT} << EOF
-        set -e
-        echo "Connected to ${SSH_HOST}"
-        mkdir -p ${DEPLOY_DIR}
-        echo "Copying files to ${DEPLOY_DIR}"
-        # Replace with commands to copy and deploy your application
-        exit
-      EOF
-    - echo "Deployment completed successfully."
-  only:
-    - main # Change branch if necessary
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Set up SSH
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          echo "Setting up SSH..."
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p $SSH_PORT $SSH_HOST >> ~/.ssh/known_hosts
+          echo "SSH setup completed."
+
+      # Build the application
+      - name: Build Application
+        run: |
+          echo "Building the application..."
+          mkdir -p dist
+          echo "<html><body><h1>Deployed Successfully</h1></body></html>" > dist/index.html
+          echo "Build process completed."
+          ls -l dist
+
+      # Deploy the application
+      - name: Deploy Application
+        run: |
+          echo "Starting deployment..."
+          echo "Transferring files to ${SSH_USERNAME}@${SSH_HOST}:${DEPLOY_DIR}"
+          scp -r -P $SSH_PORT dist/* "${SSH_USERNAME}@${SSH_HOST}:${DEPLOY_DIR}"
+          echo "Connecting to ${SSH_USERNAME}@${SSH_HOST}"
+          ssh -p $SSH_PORT "${SSH_USERNAME}@${SSH_HOST}" << EOF
+            set -e
+            echo "Connected to ${SSH_HOST}"
+            mkdir -p ${DEPLOY_DIR}
+            cd ${DEPLOY_DIR}
+            echo "Deployment successful."
+          EOF
+          echo "Deployment completed."
