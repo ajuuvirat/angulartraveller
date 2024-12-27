@@ -1,55 +1,43 @@
-name: Deploy to Remote Server
+stages:
+  - build
+  - deploy
 
-on:
-  push:
-    branches:
-      - main
+variables:
+  SSH_USERNAME: "ubuntu" # Replace with your SSH username
+  SSH_HOST: "143.110.251.96" # Replace with your SSH host
+  SSH_PORT: "22" # Default SSH port
+  DEPLOY_DIR: "/var/www/html/project" # Deployment directory
+  SSH_KEY: $SSH_PRIVATE_KEY # Set in GitLab CI/CD variables
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+before_script:
+  # Ensure SSH agent is running and private key is added
+  - eval $(ssh-agent -s)
+  - echo "$SSH_KEY" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
 
-    steps:
-    # Step 1: Checkout the code from the repository
-    - name: Checkout code
-      uses: actions/checkout@v2
+build:
+  stage: build
+  script:
+    - echo "Building the application..."
+    # Add build commands for your application (e.g., npm install, mvn package)
+    - echo "Build process completed."
 
-    # Step 2: Set up SSH key
-    - name: Set up SSH key
-      uses: webfactory/ssh-agent@v0.5.3
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-    # Step 3: Test SSH connection to remote server (for debugging)
-    - name: Test SSH connection
-      run: |
-        echo "SSH_USERNAME: ${.SSH_USERNAME}"
-        echo "SSH_HOST: ${SSH_HOST}"
-        echo "Attempting SSH connection to ${SSH_USERNAME}@${SSH_HOST} on port 22"
-        #ssh -v -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} -p 22 || { echo 'SSH connection failed'; exit 1; }
-
-    # Step 4: Run SSH commands on the remote server
-    - name: Run deployment script via SSH
-      uses: appleboy/ssh-action@v0.1.3
-      with:
-        host: ${{ secrets.SSH_HOST }}   # The actual host (IP or FQDN)
-        username: ${{ secrets.SSH_USERNAME }}  # Your SSH username
-        key: ${{ secrets.SSH_PRIVATE_KEY }}   # The SSH private key secret
-        port: 22
-        timeout: 60s
-        debug: true
-        script: |
-          # Pull the latest Docker image
-          docker pull ajuua/sampletest:latest
-          
-          # Stop and remove the old container (if running)
-          docker ps -q -f "name=sampletest" | grep -q . && docker stop sampletest && docker rm sampletest
-          
-          # Run the new container in detached mode
-          docker run -d --name sampletest -p 8080:80 ajuua/sampletest:latest
-
-    # Optional: Clean up Docker images (optional)
-    - name: Clean up Docker images (optional)
-      run: |
-        docker image prune -f  # Remove unused images
-        docker container prune -f  # Remove stopped containers
+deploy:
+  stage: deploy
+  script:
+    - echo "Deploying the application..."
+    - echo "SSH_USERNAME: ${SSH_USERNAME}"
+    - echo "SSH_HOST: ${SSH_HOST}"
+    - echo "Attempting SSH connection to ${SSH_USERNAME}@${SSH_HOST} on port ${SSH_PORT}"
+    - ssh -v -i ~/.ssh/id_rsa "${SSH_USERNAME}@${SSH_HOST}" -p ${SSH_PORT} << EOF
+        set -e
+        echo "Connected to ${SSH_HOST}"
+        mkdir -p ${DEPLOY_DIR}
+        echo "Copying files to ${DEPLOY_DIR}"
+        # Replace with commands to copy and deploy your application
+        exit
+      EOF
+    - echo "Deployment completed successfully."
+  only:
+    - main # Change branch if necessary
