@@ -55,11 +55,11 @@ jobs:
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
         run: |
           echo "Deploying Docker image to EC2..."
-          ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST << EOF
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USERNAME@$SSH_HOST << EOF
             echo "Connected to EC2"
             # Pull the Docker image from Docker Hub
             docker pull ajuua/sampletest:latest
             # Run the Docker container
-            docker run -d --name app-container -p 80:80 nagagogulan/angularproject:latest
+            docker run -d --name app-container -p 80:80 ajuua/sampletest:latest
             echo "Deployment completed successfully."
           EOF
