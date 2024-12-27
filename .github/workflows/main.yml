@@ -21,7 +21,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '18'  # Set Node.js version (change if needed)
+        node-version: '18'
 
     # Install dependencies
     - name: Install dependencies
@@ -46,20 +46,23 @@ jobs:
     - name: Push Docker image to Docker Hub
       run: docker push ajuua/sampletest
 
-    # Define SSH variables for connectivity
-    - name: Define SSH host and port
+    # Set SSH_HOST and SSH_PORT as environment variables
+    - name: Set SSH environment variables
       run: |
-        echo "SSH_HOST=143.110.251.96" >> $GITHUB_ENV  # Replace with your server's IP address or domain
-        echo "SSH_PORT=22" >> $GITHUB_ENV  # Default SSH port is 22
+        echo "SSH_HOST=64.227.159.217" >> $GITHUB_ENV
+        echo "SSH_PORT=22" >> $GITHUB_ENV
 
-    # Debug Network Connectivity
+    # Verify SSH_HOST value
+    - name: Verify SSH_HOST
+      run: echo "SSH_HOST=${{ secrets.SSH_HOST }}"
+
+    # Debug SSH connectivity
     - name: Debug Network Connectivity
       run: |
-        echo "Pinging SSH host: $SSH_HOST"
-        ping -c 4 $SSH_HOST || { echo "Ping failed. Please check SSH_HOST."; exit 1; }
+        echo "Checking SSH connection to $SSH_HOST on port $SSH_PORT"
         nc -zv $SSH_HOST $SSH_PORT || { echo "SSH connection check failed."; exit 1; }
 
-    # Set up SSH key (if needed for deployment)
+    # Set up SSH key for deployment
     - name: Set up SSH key
       run: |
         mkdir -p ~/.ssh
