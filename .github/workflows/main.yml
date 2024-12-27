@@ -3,7 +3,7 @@ name: Deploy Docker Application
 on:
   push:
     branches:
-      - main # Run the workflow on pushes to the 'main' branch
+      - main  # Run the workflow on pushes to the 'main' branch
 
 jobs:
   deploy:
@@ -39,12 +39,14 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_USERNAME: root  # Ensure this matches the username you use for SSH
         run: |
           echo "Setting up SSH..."
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          ls -al ~/.ssh  # Check the SSH directory contents
+          cat ~/.ssh/id_rsa  # Verify the SSH key
           ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
           echo "SSH setup completed."
 
@@ -52,10 +54,12 @@ jobs:
       - name: Deploy Docker Image to EC2
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_USERNAME: root  # Ensure this matches the username you use for SSH
         run: |
           echo "Deploying Docker image to EC2..."
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USERNAME@$SSH_HOST << EOF
+          ls -al ~/.ssh   # Check if the private key is present
+          cat ~/.ssh/id_rsa  # Check if the private key file is readable
+          ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USERNAME@$SSH_HOST << EOF
             echo "Connected to EC2"
             # Pull the Docker image from Docker Hub
             docker pull ajuua/sampletest:latest
