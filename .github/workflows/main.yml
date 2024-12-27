@@ -46,11 +46,12 @@ jobs:
     - name: Push Docker image to Docker Hub
       run: docker push ajuua/sampletest
 
-    # Set SSH_HOST and SSH_PORT as environment variables
+    # Set SSH_HOST, SSH_USER, and SSH_PORT as environment variables
     - name: Set SSH environment variables
       run: |
-        echo "SSH_HOST=64.227.159.217" >> $GITHUB_ENV
-        echo "SSH_PORT=22" >> $GITHUB_ENV
+        echo "SSH_HOST=64.227.159.217" >> $GITHUB_ENV  # Your server IP address
+        echo "SSH_PORT=22" >> $GITHUB_ENV            # SSH port (default is 22)
+        echo "SSH_USER=ubuntu" >> $GITHUB_ENV         # Your SSH username
 
     # Verify SSH_HOST value
     - name: Verify SSH_HOST
@@ -70,7 +71,7 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -p $SSH_PORT $SSH_HOST >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed. Please ensure the server is reachable."; exit 1; }
 
-    # Pull the latest Docker image from Docker Hub and deploy it to the server
+    # Pull the latest Docker image from Docker Hub and deploy to the server
     - name: Pull Docker image from Docker Hub and deploy to server
       run: |
         ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "
