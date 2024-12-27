@@ -3,10 +3,10 @@ name: Angular Docker CI/CD Pipeline
 on:
   push:
     branches:
-      - main  # Trigger the workflow on push to main branch
+      - main
   pull_request:
     branches:
-      - main  # Trigger the workflow on pull request to main branch
+      - main
 
 jobs:
   build:
@@ -29,7 +29,7 @@ jobs:
 
     # Build the Angular application
     - name: Build Angular application
-      run: npm run build --prod  # The build command may vary if you're using different configurations
+      run: npm run build --prod
 
     # Build Docker image
     - name: Build Docker image
@@ -39,28 +39,35 @@ jobs:
     - name: Log in to Docker Hub
       uses: docker/login-action@v2
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}  # Store Docker Hub username in GitHub secrets
-        password: ${{ secrets.DOCKER_PASSWORD }}  # Store Docker Hub password in GitHub secrets
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
     # Push Docker image to Docker Hub
     - name: Push Docker image to Docker Hub
       run: docker push ajuua/sampletest
 
-    # Debug Network Connectivity (if needed)
+    # Define SSH variables for connectivity
+    - name: Define SSH host and port
+      run: |
+        echo "SSH_HOST=143.110.251.96" >> $GITHUB_ENV  # Replace with your server's IP address or domain
+        echo "SSH_PORT=22" >> $GITHUB_ENV  # Default SSH port is 22
+
+    # Debug Network Connectivity
     - name: Debug Network Connectivity
       run: |
-        ping -c 4 $SSH_HOST
-        nc -zv $SSH_HOST $SSH_PORT
+        echo "Pinging SSH host: $SSH_HOST"
+        ping -c 4 $SSH_HOST || { echo "Ping failed. Please check SSH_HOST."; exit 1; }
+        nc -zv $SSH_HOST $SSH_PORT || { echo "SSH connection check failed."; exit 1; }
 
-    # Ensure SSH key exists for the deployment (optional)
+    # Set up SSH key (if needed for deployment)
     - name: Set up SSH key
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -p $SSH_PORT $SSH_HOST >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed. Please ensure the server is reachable and the SSH service is running."; exit 1; }
+        ssh-keyscan -p $SSH_PORT $SSH_HOST >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed. Please ensure the server is reachable."; exit 1; }
 
-     #Deployment step (if applicable)
+    # Deployment step (optional)
     # - name: Deploy to server
     #   run: |
     #     ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "docker pull ajuua/sampletest && docker run -d -p 8080:80 ajuua/sampletest"
