@@ -52,4 +52,4 @@ jobs:
             docker run -d --name cocaptan -p 9000:9000 $IMAGE_NAME:latest
           "
         env:
-          HOST: ${{ secrets.HOST }}
+          HOST: ${{ secrets.HOST }} 
