@@ -1,59 +1,50 @@
-name: Deploy Application
+#!/bin/bash
 
-on:
-  push:
-    branches:
-      - main # Run the workflow on pushes to the 'main' branch
+# Set environment variables
+SSH_PORT=22
+SSH_HOST=143.110.251.96
+DEPLOY_DIR="/var/www/html/travell-app_jar"
+JAR_FILE="travell-app_jar"
+SERVER_USER="ubuntu"
+JAVA_CMD="java -jar travel-app-0.0.1-SNAPSHOT.jar"
+SSH_PRIVATE_KEY=$SSH_PRIVATE_KEY  # Assuming this is passed as an environment variable or CI/CD secret
 
-jobs:
-  deploy:
-    name: Deploy to Remote Server
-    runs-on: ubuntu-latest
+# Step 1: Add the server's public key to known_hosts
+echo "Adding server public key to known_hosts..."
+ssh-keyscan -p $SSH_PORT $SSH_HOST >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed. Please ensure the server is reachable and the SSH service is running."; exit 1; }
 
-    env:
-      SSH_HOST: "143.110.251.96" # Replace with your server's IP or hostname
-      SSH_PORT: "22" # SSH port
-      SSH_USERNAME: "ubuntu" # Replace with your SSH username
-      DEPLOY_DIR: "/var/www/html/project" # Deployment directory
+# Step 2: Debug Network Connectivity
+echo "Checking network connectivity to $SSH_HOST on port $SSH_PORT..."
+ping -c 4 $SSH_HOST || { echo "Ping to $SSH_HOST failed. Exiting..."; exit 1; }
+nc -zv $SSH_HOST $SSH_PORT || { echo "SSH port $SSH_PORT on $SSH_HOST is not open. Exiting..."; exit 1; }
 
-    steps:
-      # Checkout the repository
-      - name: Checkout Code
-        uses: actions/checkout@v3
+# Step 3: Setup SSH and copy private key to SSH agent
+echo "Setting up SSH..."
+mkdir -p ~/.ssh
+echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+chmod 600 ~/.ssh/id_rsa
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
 
-      # Set up SSH
-      - name: Set up SSH
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          echo "Setting up SSH..."
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p $SSH_PORT $SSH_HOST >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed"; exit 1; }
-          echo "SSH setup completed."
+# Step 4: Verify SSH connection
+echo "Testing SSH connection to $SSH_HOST..."
+ssh -o StrictHostKeyChecking=no $SERVER_USER@$SSH_HOST "echo SSH connection successful"
 
-      # Build the application
-      - name: Build Application
-        run: |
-          echo "Building the application..."
-          mkdir -p dist
-          echo "<html><body><h1>Deployed Successfully</h1></body></html>" > dist/index.html
-          echo "Build process completed."
-          ls -l dist
+# Step 5: Pull the latest JAR from Git repository (or your build pipeline)
+echo "Pulling the latest code..."
+git pull origin prod-build-payout || { echo "Failed to pull code from Git repository. Exiting..."; exit 1; }
 
-      # Deploy the application
-      - name: Deploy Application
-        run: |
-          echo "Starting deployment..."
-          echo "Transferring files to ${SSH_USERNAME}@${SSH_HOST}:${DEPLOY_DIR}"
-          scp -r -P $SSH_PORT dist/* "${SSH_USERNAME}@${SSH_HOST}:${DEPLOY_DIR}" || { echo "SCP failed"; exit 1; }
-          echo "Connecting to ${SSH_USERNAME}@${SSH_HOST}"
-          ssh -p $SSH_PORT "${SSH_USERNAME}@${SSH_HOST}" << EOF
-            set -e
-            echo "Connected to ${SSH_HOST}"
-            mkdir -p ${DEPLOY_DIR}
-            cd ${DEPLOY_DIR}
-            echo "Deployment successful."
-          EOF
-          echo "Deployment completed."
+# Step 6: Deploy the JAR file to the server
+echo "Deploying JAR file to $DEPLOY_DIR..."
+scp $JAR_FILE $SERVER_USER@$SSH_HOST:$DEPLOY_DIR || { echo "Failed to copy JAR file to $SSH_HOST. Exiting..."; exit 1; }
+
+# Step 7: Restart the application (if necessary)
+echo "Restarting application on the server..."
+ssh $SERVER_USER@$SSH_HOST "cd $DEPLOY_DIR && $JAVA_CMD" || { echo "Failed to restart the application. Exiting..."; exit 1; }
+
+# Step 8: Clean up
+echo "Deployment complete. Cleaning up..."
+rm -rf ~/.ssh/id_rsa
+ssh-agent -k
+
+echo "Deployment successful!"
