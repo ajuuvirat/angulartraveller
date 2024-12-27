@@ -26,13 +26,13 @@ jobs:
       - name: Build Docker Image
         run: |
           echo "Building Docker image..."
-          docker build -t nagagogulan/angularproject:latest .
+          docker build -t ajuua/sampletest:latest .
 
       # Step 4: Push the Docker image to Docker Hub
       - name: Push Docker Image to Docker Hub
         run: |
           echo "Pushing Docker image to Docker Hub..."
-          docker push nagagogulan/angularproject:latest
+          docker push ajuua/sampletest:latest
 
       # Step 5: Set up SSH for EC2 connection
       - name: Set up SSH
@@ -58,7 +58,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST << EOF
             echo "Connected to EC2"
             # Pull the Docker image from Docker Hub
-            docker pull nagagogulan/angularproject:latest
+            docker pull ajuua/sampletest:latest
             # Run the Docker container
             docker run -d --name app-container -p 80:80 nagagogulan/angularproject:latest
             echo "Deployment completed successfully."
