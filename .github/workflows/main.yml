@@ -55,7 +55,7 @@ jobs:
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
         run: |
           echo "Deploying Docker image to EC2..."
-          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USERNAME@$SSH_HOST << EOF
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USERNAME@$SSH_HOST << EOF
             echo "Connected to EC2"
             # Pull the Docker image from Docker Hub
             docker pull ajuua/sampletest:latest
