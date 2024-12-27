@@ -1,77 +1,67 @@
-name: Angular Application CI/CD
+name: Build and Deploy Angular Docker Image
 
 on:
   push:
     branches:
-      - main  # Change this to your default branch, e.g., 'prod', 'master', etc.
+      - main  # Trigger the pipeline on push to the main branch
+  pull_request:
+    branches:
+      - main  # Trigger the pipeline on pull request to the main branch
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
-    # Step 1: Checkout the code
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    # Step 2: Setup Node.js
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'  # Specify the node version here
+      # Set up Node.js with the required version
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'  # Ensure Node.js 18.x is used for Angular CLI
+      
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
 
-    # Step 3: Install dependencies
-    - name: Install dependencies
-      run: |
-        npm install
+      # Build the Angular application
+      - name: Build Angular application
+        run: npm run build --prod
 
-    # Step 4: Build the Angular project
-    - name: Build Angular project
-      run: |
-        npm run build --prod  # The build command may vary if you're using different configurations
+      # Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t your-docker-image-name .
+        
+      # Log in to Docker Hub (optional, if you plan to push the image to Docker Hub)
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}  # Store your Docker Hub username in GitHub Secrets
+          password: ${{ secrets.DOCKER_PASSWORD }}  # Store your Docker Hub password in GitHub Secrets
 
-    # Step 5: Build Docker Image for Deployment
-    - name: Build Docker Image
-      run: |
-        docker build -t $DOCKER_IMAGE_NAME .  # Make sure to replace with your Docker image name
+      # Push the Docker image to Docker Hub (optional, if you want to push to Docker Hub)
+      - name: Push Docker image to Docker Hub
+        run: |
+          docker push your-docker-image-name
 
-    # Step 6: Push Docker Image to Docker Hub or AWS ECR
-    - name: Push Docker image to Docker Hub
-      run: |
-        docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-        docker push $DOCKER_IMAGE_NAME  # Replace with your Docker Hub image name
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: production
-
-    steps:
-    # Step 1: Checkout code (for debugging or fetching deployment configurations)
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    # Step 2: Set up SSH key for server access
-    - name: Set up SSH key for server
-      run: |
-        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        mkdir -p ~/.ssh
-        echo "$SSH_HOST" >> ~/.ssh/known_hosts
-        ssh-keyscan -t rsa $SSH_HOST >> ~/.ssh/known_hosts
-
-    # Step 3: Test SSH connection (optional but recommended)
-    - name: Test SSH connection
-      run: |
-        ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "echo SSH connection established"
-
-    # Step 4: Deploy the Docker image to the server
-    - name: Deploy Docker container on server
-      run: |
-        ssh $SSH_USER@$SSH_HOST << 'EOF'
-          docker pull $DOCKER_IMAGE_NAME  # Pull the Docker image
-          docker stop $(docker ps -q --filter "ancestor=$DOCKER_IMAGE_NAME") || true  # Stop running containers from the same image
-          docker rm $(docker ps -a -q --filter "ancestor=$DOCKER_IMAGE_NAME") || true  # Remove any old containers
-          docker run -d -p 80:80 $DOCKER_IMAGE_NAME  # Run the new container (adjust ports accordingly)
-        EOF
+      # Deploy the application (this step depends on your server setup)
+      # Example: SSH to server and deploy Docker container
+      - name: Deploy Docker container to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}  # Store your SSH private key in GitHub Secrets
+          SSH_HOST: ${{ secrets.SSH_HOST }}  # Store the SSH host in GitHub Secrets
+          SSH_USER: ${{ secrets.SSH_USER }}  # Store the SSH user in GitHub Secrets
+        run: |
+          # Ensure the SSH private key is added to the agent
+          echo "$SSH_PRIVATE_KEY" | ssh-add -
+          
+          # SSH into the server and deploy the Docker container
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
+            docker pull your-docker-image-name  # Pull the latest image from Docker Hub
+            docker stop your-container-name || true  # Stop the running container (if any)
+            docker rm your-container-name || true  # Remove the stopped container (if any)
+            docker run -d --name your-container-name -p 80:80 your-docker-image-name  # Run the new container
+          EOF
