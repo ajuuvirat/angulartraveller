@@ -30,7 +30,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p $SSH_PORT $SSH_HOST >> ~/.ssh/known_hosts
+          ssh-keyscan -p $SSH_PORT $SSH_HOST >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed"; exit 1; }
           echo "SSH setup completed."
 
       # Build the application
@@ -47,7 +47,7 @@ jobs:
         run: |
           echo "Starting deployment..."
           echo "Transferring files to ${SSH_USERNAME}@${SSH_HOST}:${DEPLOY_DIR}"
-          scp -r -P $SSH_PORT dist/* "${SSH_USERNAME}@${SSH_HOST}:${DEPLOY_DIR}"
+          scp -r -P $SSH_PORT dist/* "${SSH_USERNAME}@${SSH_HOST}:${DEPLOY_DIR}" || { echo "SCP failed"; exit 1; }
           echo "Connecting to ${SSH_USERNAME}@${SSH_HOST}"
           ssh -p $SSH_PORT "${SSH_USERNAME}@${SSH_HOST}" << EOF
             set -e
