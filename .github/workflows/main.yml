@@ -70,7 +70,12 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -p $SSH_PORT $SSH_HOST >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed. Please ensure the server is reachable."; exit 1; }
 
-    # Deployment step (optional)
-    # - name: Deploy to server
-    #   run: |
-    #     ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "docker pull ajuua/sampletest && docker run -d -p 8080:80 ajuua/sampletest"
+    # Pull the latest Docker image from Docker Hub and deploy it to the server
+    - name: Pull Docker image from Docker Hub and deploy to server
+      run: |
+        ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "
+          docker pull ajuua/sampletest &&
+          docker stop sampletest || true &&
+          docker rm sampletest || true &&
+          docker run -d -p 8100:80 --name sampletest ajuua/sampletest
+        "
