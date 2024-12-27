@@ -26,7 +26,7 @@ jobs:
         echo "SSH_USERNAME: ${SSH_USERNAME}"
         echo "SSH_HOST: ${SSH_HOST}"
         echo "Attempting SSH connection to ${SSH_USERNAME}@${SSH_HOST} on port 22"
-        ssh -v -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} -p 22 || { echo 'SSH connection failed'; exit 1; }
+        #ssh -v -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} -p 22 || { echo 'SSH connection failed'; exit 1; }
 
     # Step 4: Run SSH commands on the remote server
     - name: Run deployment script via SSH
