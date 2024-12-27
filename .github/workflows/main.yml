@@ -1,69 +1,55 @@
-name: Deploy Docker Application
-
+name: CI/CD Pipeline for Docker Deployment
+ 
 on:
   push:
     branches:
-      - main  # Run the workflow on pushes to the 'main' branch
-
+      - master
+ 
+env:
+  IMAGE_NAME: sanjayraj/cocaptan  # Replace with your Docker Hub repository
+ 
 jobs:
-  deploy:
-    name: Build, Push, and Deploy to EC2
+  build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Checkout code from the repository
-      - name: Checkout Code
+      # Step 1: Check out the repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
-
+ 
       # Step 2: Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # Step 3: Build the Docker image
+ 
+      # Step 3: Build Docker Image
       - name: Build Docker Image
-        run: |
-          echo "Building Docker image..."
-          docker build -t ajuua/sampletest:latest .
-
-      # Step 4: Push the Docker image to Docker Hub
+        run: docker build -t $IMAGE_NAME:latest .
+ 
+      # Step 4: Push Docker Image to Docker Hub
       - name: Push Docker Image to Docker Hub
-        run: |
-          echo "Pushing Docker image to Docker Hub..."
-          docker push ajuua/sampletest:latest
-
-      # Step 5: Set up SSH for EC2 connection
+        run: docker push $IMAGE_NAME:latest
+ 
+      # Step 5: Set up SSH to Deploy to Remote Server
       - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: root  # Ensure this matches the username you use for SSH
+          HOST: ${{ secrets.HOST }}
+ 
+      # Step 6: Deploy to Remote Server
+      - name: Deploy Application to Droplet
         run: |
-          echo "Setting up SSH..."
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ls -al ~/.ssh  # Check the SSH directory contents
-          cat ~/.ssh/id_rsa  # Verify the SSH key
-          ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
-          echo "SSH setup completed."
-
-      # Step 6: Deploy the Docker image to EC2
-      - name: Deploy Docker Image to EC2
+          ssh root@$HOST "
+            docker pull $IMAGE_NAME:latest &&
+            docker stop cocaptan || true &&
+            docker rm cocaptan || true &&
+            docker run -d --name cocaptan -p 9000:9000 $IMAGE_NAME:latest
+          "
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: root  # Ensure this matches the username you use for SSH
-        run: |
-          echo "Deploying Docker image to EC2..."
-          ls -al ~/.ssh   # Check if the private key is present
-          cat ~/.ssh/id_rsa  # Check if the private key file is readable
-          ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USERNAME@$SSH_HOST << EOF
-            echo "Connected to EC2"
-            # Pull the Docker image from Docker Hub
-            docker pull ajuua/sampletest:latest
-            # Run the Docker container
-            docker run -d --name app-container -p 80:80 ajuua/sampletest:latest
-            echo "Deployment completed successfully."
-          EOF
+          HOST: ${{ secrets.HOST }}
