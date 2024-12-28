@@ -9,7 +9,7 @@ env:
   IMAGE_NAME: ajuua/sampletest  # Replace with your Docker Hub repository
  
 jobs:
-  build-and-deploy:
+  build-and-deploy: 
     runs-on: ubuntu-latest
     steps:
       # Step 1: Check out the repository
