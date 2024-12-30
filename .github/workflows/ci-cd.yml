@@ -49,7 +49,9 @@ jobs:
             docker pull $IMAGE_NAME:latest &&
             docker stop cocaptan || true &&
             docker rm cocaptan || true &&
-            docker run -d -p 4200:80 $IMAGE_NAME
+            docker run -d --name cocaptan -p 8102:80 $IMAGE_NAME:latest
           "
         env:
-          HOST: ${{ secrets.HOST }} 
+          HOST: ${{ secrets.HOST }}
+
+          
