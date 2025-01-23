@@ -6,43 +6,43 @@ const routes: Routes = [
     path: '',
     loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsPageModule)
   },*/
-  { 
-    path: '', 
-    loadChildren: () => import('./authentication/user/qr-login/qr-login.module').then(m => m.QrLoginPageModule)
+  {
+    path: '',
+    loadChildren: () => import('./authentication/user/login/login.module').then(m => m.LoginPageModule)
    },
   {
-    path: 'home', 
+    path: 'home',
     loadChildren: () => import('./tabs/tabs.module').then(m=> m .TabsPageModule)
   },
-  { 
-    path: 'register', 
+  {
+    path: 'register',
     loadChildren: () => import('./authentication/user/register/register.module').then(m => m.RegisterPageModule)
   },
-  
-  { path: 'approval', 
+
+  { path: 'approval',
   loadChildren: () => import('./token-gate/approval/approval.module').then(m => m.ApprovalPageModule)
 },
-  { 
-    path: 'approval/:restaurantId/:tableId', 
+  {
+    path: 'approval/:restaurantId/:tableId',
     loadChildren: () => import('./token-gate/approval/approval.module').then(m => m.ApprovalPageModule)
   },
-  { 
-    path: 'qr-login/:restaurantId/:tableId', 
+  {
+    path: 'qr-login/:restaurantId/:tableId',
     loadChildren: () => import('./authentication/user/qr-login/qr-login.module').then(m => m.QrLoginPageModule)
   },
-  { path: 'feedback', 
-  loadChildren: () => import('./token-gate/feedback/feedback.module').then(m => m.FeedbackPageModule) 
+  { path: 'feedback',
+  loadChildren: () => import('./token-gate/feedback/feedback.module').then(m => m.FeedbackPageModule)
 },
-  { path: 'needs-list', 
-  loadChildren: () => import('./token-gate/needs-list/needs-list.module').then(m => m.NeedsListPageModule) 
+  { path: 'needs-list',
+  loadChildren: () => import('./token-gate/needs-list/needs-list.module').then(m => m.NeedsListPageModule)
 },
-{ path: 'sharning', 
-  loadChildren: () => import('./token-gate/sharing/sharing.module').then(m => m.SharingModule) 
+{ path: 'sharning',
+  loadChildren: () => import('./token-gate/sharing/sharing.module').then(m => m.SharingModule)
 },
-  { path: 'error-massage/:message', 
+  { path: 'error-massage/:message',
   loadChildren: () => import('./token-gate/error-massage/error-massage.module').then(m => m.ErrorMassagePageModule)
 },
-{ path: 'home/tabs/approval/:restaurantId/:tableId', 
+{ path: 'home/tabs/approval/:restaurantId/:tableId',
 loadChildren: () => import('./token-gate/error-massage/error-massage.module').then(m => m.ErrorMassagePageModule)
 },
   {
@@ -52,39 +52,14 @@ loadChildren: () => import('./token-gate/error-massage/error-massage.module').th
   {
     path: 'bulk-order',
     loadChildren: () => import('./../app/token-gate/list-bulk/bulk-order/bulk-order.module').then( m => m.BulkOrderPageModule)
-  },
-  {
-    path: 'takeorder',
-    loadChildren: () => import('../app/token-gate/list-bulk/takeorder/takeorder.module').then( m => m.TakeorderPageModule)
-  },
-  {
-    path: 'otp-verfication',
-    loadChildren: () => import('../app/token-gate/list-bulk/otp-verfication/otp-verfication.module').then( m => m.OtpVerficationPageModule)
-  },
-  {
-    path: 'order-history',
-    loadChildren: () => import('../app/token-gate/list-bulk/order-history/order-history.module').then( m => m.OrderHistoryPageModule)
-  },
-
-  {
-    path: 'order-history/bulk-order',
-    loadChildren: () => import('./../app/token-gate/list-bulk/bulk-order/bulk-order.module').then(m => m.BulkOrderPageModule)
-  },
-
-  {
-    path: '',
-    redirectTo: '/order-history',
-    pathMatch: 'full'
-  },
-  {
-    path: '**',
-    redirectTo: '/order-history'
   }
-  
+
+
+
 ];
 @NgModule({
   imports: [
-    RouterModule.forRoot(routes, { preloadingStrategy: PreloadAllModules })
+    RouterModule.forRoot(routes, {useHash: true})
   ],
   exports: [RouterModule]
 })
